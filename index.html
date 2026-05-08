@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PUBGM Player Lookup</title>
+<title>PUBGM Player Tools</title>
 <style>
   * { box-sizing: border-box; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    max-width: 480px;
-    margin: 60px auto 40px;
+    max-width: 520px;
+    margin: 50px auto 60px;
     padding: 0 20px;
     background: #0a0a0a;
     color: #e5e5e5;
@@ -21,18 +21,29 @@
     margin: 0 0 4px;
     letter-spacing: -0.01em;
   }
-  .sub {
-    font-size: 13px;
-    color: #777;
-    margin-bottom: 28px;
+  .sub { font-size: 13px; color: #777; margin-bottom: 28px; }
+
+  section {
+    margin-bottom: 26px;
+    padding: 18px 18px 16px;
+    background: #101010;
+    border: 1px solid #1f1f1f;
+    border-radius: 12px;
   }
-  form {
+  section h2 {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 4px;
     display: flex;
-    gap: 8px;
+    justify-content: space-between;
+    align-items: center;
   }
+  section .caption { font-size: 12px; color: #777; margin-bottom: 12px; }
+
+  form { display: flex; gap: 8px; }
   input {
     flex: 1;
-    padding: 11px 14px;
+    padding: 10px 13px;
     border: 1px solid #2a2a2a;
     background: #131313;
     color: #e5e5e5;
@@ -40,63 +51,49 @@
     font-size: 14px;
     outline: none;
     transition: border-color 0.12s;
+    font-family: inherit;
   }
   input:focus { border-color: #555; }
   button {
-    padding: 11px 18px;
+    padding: 10px 16px;
     background: #e5e5e5;
     color: #0a0a0a;
     border: 0;
     border-radius: 8px;
     font-weight: 500;
-    font-size: 14px;
+    font-size: 13px;
     cursor: pointer;
-    transition: background 0.12s;
+    transition: background 0.12s, opacity 0.12s;
+    font-family: inherit;
   }
   button:hover:not(:disabled) { background: #fff; }
-  button:disabled { opacity: 0.5; cursor: wait; }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+
   .result {
-    margin-top: 20px;
-    padding: 18px 20px;
-    background: #131313;
-    border-radius: 10px;
+    margin-top: 14px;
+    padding: 12px 14px;
+    background: #161616;
+    border-radius: 8px;
     border: 1px solid #2a2a2a;
+    font-size: 13px;
   }
   .result.error { border-color: #5a2828; background: #1a0e0e; }
-  .name {
-    font-size: 24px;
-    font-weight: 600;
-    margin-bottom: 8px;
-    letter-spacing: -0.01em;
-  }
-  .meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px 14px;
-    font-size: 13px;
-    color: #888;
-  }
+  .name { font-size: 18px; font-weight: 600; margin-bottom: 6px; letter-spacing: -0.01em; }
+  .meta { display: flex; flex-wrap: wrap; gap: 4px 12px; color: #888; font-size: 12px; }
   .meta b { color: #bbb; font-weight: 500; }
   .badge {
     display: inline-block;
-    padding: 2px 9px;
+    padding: 1px 7px;
     border-radius: 999px;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
     letter-spacing: 0.02em;
     text-transform: uppercase;
   }
   .badge.ok { background: #1a3a1a; color: #7ed47e; }
   .badge.banned { background: #3a1a1a; color: #d47e7e; }
-  .hint {
-    color: #555;
-    font-size: 11px;
-    margin-top: 12px;
-  }
-  .loading {
-    color: #777;
-    font-size: 13px;
-  }
+  .hint { color: #555; font-size: 11px; margin-top: 8px; }
+  .loading { color: #777; font-size: 13px; }
   .loading::after {
     content: "";
     display: inline-block;
@@ -105,85 +102,226 @@
     animation: dots 1.2s steps(4, end) infinite;
   }
   @keyframes dots {
-    0%, 25% { content: ""; }
+    0%,25% { content: ""; }
     50% { content: "."; }
     75% { content: ".."; }
     100% { content: "..."; }
   }
+
+  .status {
+    font-size: 11px;
+    font-weight: 500;
+    color: #888;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .status::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #555;
+    display: inline-block;
+  }
+  .status.online::before { background: #4ade80; }
+  .status.offline::before { background: #ef4444; }
+
+  .endpoint-config {
+    margin-top: 32px;
+    padding-top: 16px;
+    border-top: 1px solid #1f1f1f;
+    font-size: 11px;
+    color: #555;
+  }
+  .endpoint-config code {
+    background: #131313;
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: #888;
+    font-size: 11px;
+  }
 </style>
 </head>
 <body>
-  <h1>PUBGM Player Lookup</h1>
-  <div class="sub">Enter a Player ID to resolve the character name.</div>
+  <h1>PUBGM Player Tools</h1>
+  <div class="sub">Lookup, switch, and validate coupons via the Midasbuy redeem flow.</div>
 
-  <form id="form">
-    <input id="pid" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="e.g. 5234567890" autocomplete="off" autofocus>
-    <button id="btn" type="submit">Look up</button>
-  </form>
+  <section>
+    <h2>Look up player</h2>
+    <div class="caption">Resolve a Player ID → character name. Public service, no login.</div>
+    <form id="lookup-form">
+      <input id="lookup-input" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="e.g. 5234567890" autocomplete="off" autofocus>
+      <button type="submit" id="lookup-btn">Look up</button>
+    </form>
+    <div id="lookup-result"></div>
+  </section>
 
-  <div id="result"></div>
+  <section>
+    <h2>Switch linked player <span id="local-status" class="status">checking</span></h2>
+    <div class="caption">Bind a different PUBGM player to the redeem session. Local daemon required (login persisted in browser profile).</div>
+    <form id="switch-form">
+      <input id="switch-input" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="e.g. 558565587" autocomplete="off">
+      <button type="submit" id="switch-btn">Switch</button>
+    </form>
+    <div id="switch-result"></div>
+  </section>
+
+  <section>
+    <h2>Validate coupon</h2>
+    <div class="caption">Check if a redeem code is valid. Does <b>not</b> consume the code. Local daemon required.</div>
+    <form id="coupon-form">
+      <input id="coupon-input" type="text" placeholder="redeem code" autocomplete="off">
+      <button type="submit" id="coupon-btn">Validate</button>
+    </form>
+    <div id="coupon-result"></div>
+  </section>
+
+  <div class="endpoint-config">
+    Public lookup: <code id="public-url"></code><br>
+    Local daemon: <code id="local-url"></code> — start with <code>node midasbuy-hybrid.js serve</code>
+  </div>
 
 <script>
-const API = "https://midasbuy-hybrid-production.up.railway.app/lookup/";
+const PUBLIC_API = "https://midasbuy-hybrid-production.up.railway.app";
+const LOCAL_API  = "http://127.0.0.1:7777";
 
-const form = document.getElementById("form");
-const input = document.getElementById("pid");
-const btn = document.getElementById("btn");
-const out = document.getElementById("result");
+document.getElementById("public-url").innerText = PUBLIC_API;
+document.getElementById("local-url").innerText = LOCAL_API;
 
-function esc(s) {
-  const d = document.createElement("div");
-  d.innerText = String(s ?? "");
-  return d.innerHTML;
+const $ = (id) => document.getElementById(id);
+const esc = (s) => { const d = document.createElement("div"); d.innerText = String(s ?? ""); return d.innerHTML; };
+
+function setLoading(box, msg = "Looking up") {
+  box.innerHTML = `<div class="result"><div class="loading">${esc(msg)}</div></div>`;
+}
+function showError(box, headline, hint) {
+  box.innerHTML = `<div class="result error"><div class="meta">${esc(headline)}</div>${hint ? `<div class="hint">${esc(hint)}</div>` : ""}</div>`;
+}
+function showPlayer(box, info, id, ms) {
+  const banned = !!info.is_ban;
+  box.innerHTML = `
+    <div class="result">
+      <div class="name">${esc(info.charac_name)}</div>
+      <div class="meta">
+        <span><b>ID</b> ${esc(id)}</span>
+        <span><b>Zone</b> ${esc(info.zoneid)}</span>
+        <span><b>OpenID</b> ${esc(info.openid)}</span>
+        <span class="badge ${banned ? "banned" : "ok"}">${banned ? "Banned" : "Active"}</span>
+      </div>
+      <div class="hint">${ms} ms</div>
+    </div>`;
 }
 
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const id = input.value.trim();
+// --- Local daemon health probe ---
+const localStatus = $("local-status");
+let localOnline = false;
 
-  if (!/^\d+$/.test(id)) {
-    out.innerHTML = `<div class="result error"><div class="meta">Player ID must be digits only.</div></div>`;
-    return;
+async function pingLocal() {
+  try {
+    const r = await fetch(LOCAL_API + "/health", { method: "GET", cache: "no-store" });
+    if (!r.ok) throw new Error("not ok");
+    localOnline = true;
+    localStatus.textContent = "online";
+    localStatus.className = "status online";
+  } catch (_) {
+    localOnline = false;
+    localStatus.textContent = "offline";
+    localStatus.className = "status offline";
   }
+  $("switch-btn").disabled = !localOnline;
+  $("coupon-btn").disabled = !localOnline;
+}
+pingLocal();
+setInterval(pingLocal, 8000);
 
-  btn.disabled = true;
-  out.innerHTML = `<div class="result"><div class="loading">Looking up</div></div>`;
+// --- Lookup (Railway, public) ---
+$("lookup-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const id = $("lookup-input").value.trim();
+  const box = $("lookup-result");
+  if (!/^\d+$/.test(id)) { showError(box, "Player ID must be digits only."); return; }
 
+  $("lookup-btn").disabled = true;
+  setLoading(box);
   const t0 = performance.now();
   try {
-    const r = await fetch(API + encodeURIComponent(id));
+    const r = await fetch(`${PUBLIC_API}/lookup/${encodeURIComponent(id)}`);
     const data = await r.json();
     const ms = Math.round(performance.now() - t0);
-
     if (data.ret === 0 && data.info) {
-      const banned = !!data.info.is_ban;
-      out.innerHTML = `
-        <div class="result">
-          <div class="name">${esc(data.info.charac_name)}</div>
-          <div class="meta">
-            <span><b>ID</b> ${esc(id)}</span>
-            <span><b>Zone</b> ${esc(data.info.zoneid)}</span>
-            <span><b>OpenID</b> ${esc(data.info.openid)}</span>
-            <span class="badge ${banned ? "banned" : "ok"}">${banned ? "Banned" : "Active"}</span>
-          </div>
-          <div class="hint">${ms} ms</div>
-        </div>`;
+      showPlayer(box, data.info, id, ms);
     } else {
       const msg = (data.msg || "").replace(/^game response no data,head\.code:\d+,head\.msg:/, "");
-      out.innerHTML = `
-        <div class="result error">
-          <div class="meta">No player found for <b>${esc(id)}</b>.</div>
-          <div class="hint">${esc(msg) || "Unknown error"}</div>
-        </div>`;
+      showError(box, `No player found for ${id}.`, msg || "Unknown error");
     }
   } catch (err) {
-    out.innerHTML = `
-      <div class="result error">
-        <div class="meta">Request failed.</div>
-        <div class="hint">${esc(err.message)}</div>
-      </div>`;
+    showError(box, "Request failed.", err.message);
   } finally {
-    btn.disabled = false;
+    $("lookup-btn").disabled = false;
+  }
+});
+
+// --- Switch (local daemon) ---
+$("switch-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const id = $("switch-input").value.trim();
+  const box = $("switch-result");
+  if (!/^\d+$/.test(id)) { showError(box, "Player ID must be digits only."); return; }
+  if (!localOnline) { showError(box, "Local daemon is offline.", "Start it with: node midasbuy-hybrid.js serve"); return; }
+
+  $("switch-btn").disabled = true;
+  setLoading(box, "Switching");
+  const t0 = performance.now();
+  try {
+    const r = await fetch(`${LOCAL_API}/switch/${encodeURIComponent(id)}`);
+    const data = await r.json();
+    const ms = Math.round(performance.now() - t0);
+    if (data.ret === 0 && data.info) {
+      showPlayer(box, data.info, id, ms);
+    } else {
+      showError(box, `Switch failed for ${id}.`, data.msg || JSON.stringify(data));
+    }
+  } catch (err) {
+    showError(box, "Request failed.", err.message);
+  } finally {
+    $("switch-btn").disabled = !localOnline;
+  }
+});
+
+// --- Coupon validate (local daemon) ---
+$("coupon-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const code = $("coupon-input").value.trim();
+  const box = $("coupon-result");
+  if (!/^[A-Za-z0-9]{4,}$/.test(code)) { showError(box, "Coupon code looks invalid."); return; }
+  if (!localOnline) { showError(box, "Local daemon is offline.", "Start it with: node midasbuy-hybrid.js serve"); return; }
+
+  $("coupon-btn").disabled = true;
+  setLoading(box, "Validating");
+  const t0 = performance.now();
+  try {
+    const r = await fetch(`${LOCAL_API}/coupon/${encodeURIComponent(code)}`);
+    const data = await r.json();
+    const ms = Math.round(performance.now() - t0);
+    // ret:0 means accepted (would-be redeemable); non-zero means rejected.
+    if (data.ret === 0) {
+      box.innerHTML = `
+        <div class="result">
+          <div class="name">Valid</div>
+          <div class="meta"><span><b>Code</b> ${esc(code)}</span><span class="badge ok">Redeemable</span></div>
+          <div class="hint">${ms} ms — full response below</div>
+          <pre style="margin:8px 0 0;white-space:pre-wrap;font-size:11px;color:#888;">${esc(JSON.stringify(data, null, 2))}</pre>
+        </div>`;
+    } else {
+      const cleanMsg = String(data.msg || "").replace(/\(debugid=[^)]*\)/, "").trim();
+      const errCode = data.err_code ? ` (${data.err_code})` : "";
+      showError(box, `Invalid${errCode}`, cleanMsg || `${ms} ms — ${data.code ?? data.ret}`);
+    }
+  } catch (err) {
+    showError(box, "Request failed.", err.message);
+  } finally {
+    $("coupon-btn").disabled = !localOnline;
   }
 });
 </script>
