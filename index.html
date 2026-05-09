@@ -319,19 +319,26 @@ $("redeem-form").addEventListener("submit", async (e) => {
   try {
     const url = `${LOCAL_API}/arsal/${encodeURIComponent(code)}` + (player ? `?player=${encodeURIComponent(player)}` : "");
     const r = await fetch(url);
-    const data = await r.json();
+    const data = await r.json().catch(() => ({}));
     const ms = Math.round(performance.now() - t0);
 
+    // Daemon returned a top-level { error: "..." } envelope — unhandled exception path.
+    if (data.error && !data.stage) {
+      showError(box, "Daemon error", String(data.error));
+      return;
+    }
     if (data.stage === "switch") {
-      showError(box, `Switch to player ${player} failed.`, JSON.stringify(data.detail || data));
+      const msg = data.detail?.msg || JSON.stringify(data.detail || data);
+      showError(box, `Switch to player ${esc(player)} failed.`, msg);
       return;
     }
     if (data.stage === "validation") {
-      const v = data.validation?.data || {};
-      showError(box, `Coupon rejected (${v.err_code || "unknown"})`, v.msg || JSON.stringify(v));
+      const v = data.validation || {};
+      const cleaned = String(v.msg || "").replace(/\(debugid=[^)]*\)/, "").trim();
+      showError(box, `Coupon rejected${v.err_code ? " (" + v.err_code + ")" : ""}`, cleaned || JSON.stringify(v));
       return;
     }
-    // The form POST returns HTML — we just got HTTP status + body preview from the daemon.
+    // The form POST returned HTML — we got status + body preview from the daemon's consumeCoupon.
     if (data.status === 200) {
       box.innerHTML = `
         <div class="result">
@@ -343,8 +350,10 @@ $("redeem-form").addEventListener("submit", async (e) => {
           </div>
           <div class="hint">${ms} ms — Tencent accepted the form. Verify by checking the recipient's UC balance or your Midasbuy redeem history.</div>
         </div>`;
+    } else if (typeof data.status !== "undefined") {
+      showError(box, `Tencent returned HTTP ${data.status} ${data.statusText || ""}`, (data.bodyPreview || "").slice(0, 300));
     } else {
-      showError(box, `HTTP ${data.status} ${data.statusText || ""}`, (data.bodyPreview || "").slice(0, 300));
+      showError(box, `Unexpected response (HTTP ${r.status})`, (typeof data === "object" ? JSON.stringify(data).slice(0, 300) : String(data)));
     }
   } catch (err) {
     showError(box, "Request failed.", err.message);
