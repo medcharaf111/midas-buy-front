@@ -177,6 +177,17 @@
     <div id="coupon-result"></div>
   </section>
 
+  <section>
+    <h2>Redeem coupon <span class="badge banned">Destructive</span></h2>
+    <div class="caption">Submits the coupon for real — <b>this consumes the code</b>. Optional player ID redirects the credit to that PUBGM player; leave blank to use whoever is currently linked.</div>
+    <form id="redeem-form">
+      <input id="redeem-code" type="text" placeholder="redeem code" autocomplete="off">
+      <input id="redeem-player" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="player ID (optional)" autocomplete="off">
+      <button type="submit" id="redeem-btn">Redeem</button>
+    </form>
+    <div id="redeem-result"></div>
+  </section>
+
   <div class="endpoint-config">
     Public lookup: <code id="public-url"></code><br>
     Local daemon: <code id="local-url"></code> — start with <code>node midasbuy-hybrid.js serve</code>
@@ -231,6 +242,7 @@ async function pingLocal() {
   }
   $("switch-btn").disabled = !localOnline;
   $("coupon-btn").disabled = !localOnline;
+  $("redeem-btn").disabled = !localOnline;
 }
 pingLocal();
 setInterval(pingLocal, 8000);
@@ -286,6 +298,58 @@ $("switch-form").addEventListener("submit", async (e) => {
     showError(box, "Request failed.", err.message);
   } finally {
     $("switch-btn").disabled = !localOnline;
+  }
+});
+
+// --- Redeem (local daemon, destructive) ---
+$("redeem-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const code = $("redeem-code").value.trim();
+  const player = $("redeem-player").value.trim();
+  const box = $("redeem-result");
+  if (!/^[A-Za-z0-9]{4,}$/.test(code)) { showError(box, "Coupon code looks invalid."); return; }
+  if (player && !/^\d+$/.test(player)) { showError(box, "Player ID must be digits only (or leave blank)."); return; }
+  if (!localOnline) { showError(box, "Local daemon is offline."); return; }
+
+  if (!confirm(`Redeem ${code}${player ? " for player " + player : ""}? This will consume the coupon.`)) return;
+
+  $("redeem-btn").disabled = true;
+  setLoading(box, "Redeeming");
+  const t0 = performance.now();
+  try {
+    const url = `${LOCAL_API}/arsal/${encodeURIComponent(code)}` + (player ? `?player=${encodeURIComponent(player)}` : "");
+    const r = await fetch(url);
+    const data = await r.json();
+    const ms = Math.round(performance.now() - t0);
+
+    if (data.stage === "switch") {
+      showError(box, `Switch to player ${player} failed.`, JSON.stringify(data.detail || data));
+      return;
+    }
+    if (data.stage === "validation") {
+      const v = data.validation?.data || {};
+      showError(box, `Coupon rejected (${v.err_code || "unknown"})`, v.msg || JSON.stringify(v));
+      return;
+    }
+    // The form POST returns HTML — we just got HTTP status + body preview from the daemon.
+    if (data.status === 200) {
+      box.innerHTML = `
+        <div class="result">
+          <div class="name">Submitted ✓</div>
+          <div class="meta">
+            <span><b>Code</b> ${esc(code)}</span>
+            ${player ? `<span><b>Player</b> ${esc(player)}</span>` : ""}
+            <span class="badge ok">HTTP ${data.status}</span>
+          </div>
+          <div class="hint">${ms} ms — Tencent accepted the form. Verify by checking the recipient's UC balance or your Midasbuy redeem history.</div>
+        </div>`;
+    } else {
+      showError(box, `HTTP ${data.status} ${data.statusText || ""}`, (data.bodyPreview || "").slice(0, 300));
+    }
+  } catch (err) {
+    showError(box, "Request failed.", err.message);
+  } finally {
+    $("redeem-btn").disabled = !localOnline;
   }
 });
 
