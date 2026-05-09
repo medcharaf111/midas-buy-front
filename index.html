@@ -145,7 +145,27 @@
 </head>
 <body>
   <h1>PUBGM Player Tools</h1>
-  <div class="sub">Lookup, switch, and validate coupons via the Midasbuy redeem flow.</div>
+  <div class="sub">Lookup, switch, validate, and redeem coupons via the Midasbuy regional pages.</div>
+
+  <div style="margin-bottom:24px;display:flex;gap:8px;align-items:center;font-size:13px;color:#888;">
+    <label for="country-select" style="white-space:nowrap;">Region:</label>
+    <select id="country-select" style="padding:7px 10px;background:#131313;border:1px solid #2a2a2a;color:#e5e5e5;border-radius:6px;font-size:13px;outline:none;cursor:pointer;font-family:inherit;">
+      <option value="eg">Egypt — /eg</option>
+      <option value="sa">Saudi Arabia — /sa</option>
+      <option value="ae">United Arab Emirates — /ae</option>
+      <option value="tr">Türkiye — /tr</option>
+      <option value="de">Germany — /de</option>
+      <option value="fr">France — /fr</option>
+      <option value="us">United States — /us</option>
+      <option value="br">Brazil — /br</option>
+      <option value="id">Indonesia — /id</option>
+      <option value="my">Malaysia — /my</option>
+      <option value="ph">Philippines — /ph</option>
+      <option value="pk">Pakistan — /pk</option>
+      <option value="ot">Other / Global — /ot</option>
+    </select>
+    <span style="color:#555;font-size:11px;">applied to switch / coupon / redeem</span>
+  </div>
 
   <section>
     <h2>Look up player</h2>
@@ -196,6 +216,16 @@
 <script>
 const PUBLIC_API = "https://midasbuy-hybrid-production.up.railway.app";
 const LOCAL_API  = "https://retrieval-meetings-ray-helped.trycloudflare.com";
+
+// Helper: append ?country=<selected> to a daemon URL. Lookups against the
+// public Railway endpoint are anonymous and country-agnostic, so it's only
+// applied to LOCAL_API calls (switch/coupon/arsal).
+function withCountry(baseUrl) {
+  const country = document.getElementById("country-select")?.value;
+  if (!country) return baseUrl;
+  const sep = baseUrl.includes("?") ? "&" : "?";
+  return `${baseUrl}${sep}country=${encodeURIComponent(country)}`;
+}
 
 document.getElementById("public-url").innerText = PUBLIC_API;
 document.getElementById("local-url").innerText = LOCAL_API;
@@ -286,7 +316,7 @@ $("switch-form").addEventListener("submit", async (e) => {
   setLoading(box, "Switching");
   const t0 = performance.now();
   try {
-    const r = await fetch(`${LOCAL_API}/switch/${encodeURIComponent(id)}`);
+    const r = await fetch(withCountry(`${LOCAL_API}/switch/${encodeURIComponent(id)}`));
     const data = await r.json();
     const ms = Math.round(performance.now() - t0);
     if (data.ret === 0 && data.info) {
@@ -317,7 +347,7 @@ $("redeem-form").addEventListener("submit", async (e) => {
   setLoading(box, "Redeeming");
   const t0 = performance.now();
   try {
-    const url = `${LOCAL_API}/arsal/${encodeURIComponent(code)}` + (player ? `?player=${encodeURIComponent(player)}` : "");
+    const url = withCountry(`${LOCAL_API}/arsal/${encodeURIComponent(code)}` + (player ? `?player=${encodeURIComponent(player)}` : ""));
     const r = await fetch(url);
     const data = await r.json().catch(() => ({}));
     const ms = Math.round(performance.now() - t0);
@@ -374,7 +404,7 @@ $("coupon-form").addEventListener("submit", async (e) => {
   setLoading(box, "Validating");
   const t0 = performance.now();
   try {
-    const r = await fetch(`${LOCAL_API}/coupon/${encodeURIComponent(code)}`);
+    const r = await fetch(withCountry(`${LOCAL_API}/coupon/${encodeURIComponent(code)}`));
     const data = await r.json();
     const ms = Math.round(performance.now() - t0);
     // ret:0 means accepted (would-be redeemable); non-zero means rejected.
