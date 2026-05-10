@@ -214,7 +214,7 @@
   </div>
 
 <script>
-const PUBLIC_API = "https://midasbuy-hybrid-production.up.railway.app";
+const PUBLIC_API = "https://retrieval-meetings-ray-helped.trycloudflare.com";
 const LOCAL_API  = "https://retrieval-meetings-ray-helped.trycloudflare.com";
 
 // Helper: append ?country=<selected> to a daemon URL. Lookups against the
@@ -368,20 +368,43 @@ $("redeem-form").addEventListener("submit", async (e) => {
       showError(box, `Coupon rejected${v.err_code ? " (" + v.err_code + ")" : ""}`, cleaned || JSON.stringify(v));
       return;
     }
-    // The form POST returned HTML — we got status + body preview from the daemon's consumeCoupon.
-    if (data.status === 200) {
+    // consumeViaUI returns { outcome: "success"|"failed"|"pending"|"timeout", ... }
+    if (data.outcome === "success") {
       box.innerHTML = `
         <div class="result">
-          <div class="name">Submitted ✓</div>
+          <div class="name">Redeemed</div>
           <div class="meta">
             <span><b>Code</b> ${esc(code)}</span>
             ${player ? `<span><b>Player</b> ${esc(player)}</span>` : ""}
+            <span class="badge ok">Success</span>
+          </div>
+          <div class="hint">${ms} ms — coupon consumed. Check the recipient's UC balance.</div>
+        </div>`;
+    } else if (data.outcome === "pending") {
+      box.innerHTML = `
+        <div class="result">
+          <div class="name">Pending</div>
+          <div class="meta">
+            <span><b>Code</b> ${esc(code)}</span>
+            <span class="badge ok">Pending</span>
+          </div>
+          <div class="hint">${ms} ms — payment processing. Check UC balance in a moment.</div>
+        </div>`;
+    } else if (data.outcome === "failed") {
+      showError(box, "Redeem failed.", data.callbackUrl || "Tencent rejected the submission.");
+    } else if (data.outcome === "timeout") {
+      showError(box, "Timed out waiting for payment result.", "The coupon may or may not have been consumed. Check UC balance manually.");
+    } else if (typeof data.status !== "undefined" && data.status === 200) {
+      // Legacy raw-HTTP response fallback
+      box.innerHTML = `
+        <div class="result">
+          <div class="name">Submitted</div>
+          <div class="meta">
+            <span><b>Code</b> ${esc(code)}</span>
             <span class="badge ok">HTTP ${data.status}</span>
           </div>
-          <div class="hint">${ms} ms — Tencent accepted the form. Verify by checking the recipient's UC balance or your Midasbuy redeem history.</div>
+          <div class="hint">${ms} ms — verify by checking UC balance.</div>
         </div>`;
-    } else if (typeof data.status !== "undefined") {
-      showError(box, `Tencent returned HTTP ${data.status} ${data.statusText || ""}`, (data.bodyPreview || "").slice(0, 300));
     } else {
       showError(box, `Unexpected response (HTTP ${r.status})`, (typeof data === "object" ? JSON.stringify(data).slice(0, 300) : String(data)));
     }
