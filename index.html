@@ -345,13 +345,22 @@ $("redeem-form").addEventListener("submit", async (e) => {
 
   $("redeem-btn").disabled = true;
   setLoading(box, "Redeeming");
-  const url = withCountry(`${LOCAL_API}/arsal/${encodeURIComponent(code)}` + (player ? `?player=${encodeURIComponent(player)}` : ""));
-  const fetchPromise = fetch(url).then(r => r.json().catch(() => ({})));
+  const t0 = performance.now();
+  try {
+    const url = withCountry(`${LOCAL_API}/arsal/${encodeURIComponent(code)}` + (player ? `?player=${encodeURIComponent(player)}` : ""));
+    const r = await fetch(url);
+    const data = await r.json().catch(() => ({}));
+    const ms = Math.round(performance.now() - t0);
 
-  // Show success optimistically after 3-5s while the request continues
-  const delay = 3000 + Math.random() * 2000;
-  setTimeout(() => {
-    if ($("redeem-btn").disabled) {
+    if (data.error && !data.stage) {
+      showError(box, "Daemon error", String(data.error));
+    } else if (data.stage === "switch") {
+      showError(box, "Switch to player " + esc(player) + " failed.", data.detail?.msg || JSON.stringify(data.detail || data));
+    } else if (data.stage === "validation") {
+      const v = data.validation || {};
+      const cleaned = String(v.msg || "").replace(/\(debugid=[^)]*\)/, "").trim();
+      showError(box, "Coupon rejected" + (v.err_code ? " (" + v.err_code + ")" : ""), cleaned || JSON.stringify(v));
+    } else if (data.outcome === "success") {
       const d = document.createElement("div"); d.className = "result";
       const n = document.createElement("div"); n.className = "name"; n.textContent = "Redeemed"; d.appendChild(n);
       const m = document.createElement("div"); m.className = "meta";
@@ -359,13 +368,29 @@ $("redeem-form").addEventListener("submit", async (e) => {
       if (player) { const s2 = document.createElement("span"); const b2 = document.createElement("b"); b2.textContent = "Player"; s2.appendChild(b2); s2.appendChild(document.createTextNode(" " + player)); m.appendChild(s2); }
       const badge = document.createElement("span"); badge.className = "badge ok"; badge.textContent = "Success"; m.appendChild(badge);
       d.appendChild(m);
-      const h = document.createElement("div"); h.className = "hint"; h.textContent = "Coupon consumed. Check the recipient\u2019s UC balance."; d.appendChild(h);
+      const h = document.createElement("div"); h.className = "hint"; h.textContent = ms + " ms \u2014 coupon consumed. Check the recipient\u2019s UC balance."; d.appendChild(h);
       box.textContent = ""; box.appendChild(d);
-      $("redeem-btn").disabled = !localOnline;
+    } else if (data.outcome === "pending") {
+      const d = document.createElement("div"); d.className = "result";
+      const n = document.createElement("div"); n.className = "name"; n.textContent = "Pending"; d.appendChild(n);
+      const m = document.createElement("div"); m.className = "meta";
+      const s1 = document.createElement("span"); const b1 = document.createElement("b"); b1.textContent = "Code"; s1.appendChild(b1); s1.appendChild(document.createTextNode(" " + code)); m.appendChild(s1);
+      const badge = document.createElement("span"); badge.className = "badge ok"; badge.textContent = "Pending"; m.appendChild(badge);
+      d.appendChild(m);
+      const h = document.createElement("div"); h.className = "hint"; h.textContent = ms + " ms \u2014 payment processing. Check UC balance in a moment."; d.appendChild(h);
+      box.textContent = ""; box.appendChild(d);
+    } else if (data.outcome === "failed") {
+      showError(box, "Redeem failed.", data.callbackUrl || "Tencent rejected the submission.");
+    } else if (data.outcome === "timeout") {
+      showError(box, "Timed out waiting for payment result.", "The coupon may or may not have been consumed. Check UC balance manually.");
+    } else {
+      showError(box, "Unexpected response (HTTP " + r.status + ")", typeof data === "object" ? JSON.stringify(data).slice(0, 300) : String(data));
     }
-  }, delay);
-
-  fetchPromise.catch(() => {}).finally(() => { $("redeem-btn").disabled = !localOnline; });
+  } catch (err) {
+    showError(box, "Request failed.", err.message);
+  } finally {
+    $("redeem-btn").disabled = !localOnline;
+  }
 });
 
 // --- Coupon validate (local daemon) ---
